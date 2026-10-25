@@ -162,7 +162,7 @@ $('#f').onchange=async e=>{
 
 /* 기록 목록 */
 function thumb(r){
- if(!r.pts||!r.pts.length)return r.indoor?`<svg width="56" height="56" style="background:#eef3f2;border-radius:8px"><text x="28" y="38" text-anchor="middle" font-size="26">🏠</text></svg>`:`<img src="shoe.png" width="56" height="56" alt="" style="object-fit:contain;padding:6px;background:#eef3f2;border-radius:8px">`;
+ if(!r.pts||!r.pts.length)return`<img src="yongyong.png" width="56" height="56" alt="" style="object-fit:cover;border-radius:8px">`;
  const p=r.pts,la=p.map(x=>x[0]),lo=p.map(x=>x[1]),a=Math.min(...la),b=Math.max(...la),c=Math.min(...lo),d=Math.max(...lo),k=Math.cos(a*Math.PI/180),z=Math.max(b-a,(d-c)*k)||1e-4,q=Math.ceil(p.length/60);
  const runs=[];let cur=null;
  p.forEach((x,i)=>{if(x[4]||!cur){cur=[];runs.push(cur)}
