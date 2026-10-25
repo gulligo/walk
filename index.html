@@ -175,7 +175,7 @@ function list(){
  const g={};[...R].sort((a,b)=>b.ts-a.ts).forEach(r=>(g[r.date.slice(0,7)]??=[]).push(r));
  $('#list').innerHTML=Object.entries(g).map(([k,a])=>`<div class="mh"><b>${k.replace('-','/')}</b><small>${sum(a).toFixed(1)} km · ${hm(a.reduce((s,r)=>s+r.dur,0))} · ${a.length}회</small></div>`
  +a.map(r=>`<div class="it"><input type="checkbox" data-i="${r.id}" ${sel.has(r.id)?'checked':''}>${thumb(r)}
- <span onclick="show('${r.id}')"><span style="font-size:13px;color:#5b6b69">${r.date}${tm(r)}${r.manual?(r.indoor?' · 실내':' · 직접입력'):''}</span>${r.steps?`<br><span style="font-size:13px;color:#0f766e">${r.steps.toLocaleString()}걸음</span>`:''}<br><b style="font-size:16px">${r.dist.toFixed(2)}</b> km${r.extra?` <small>(+${+r.extra.toFixed(2)})</small>`:''} · ${hms(r.dur)} · ${spd(r)} km/h<br><small>${r.note||''}</small></span></div>`).join('')).join('')||'기록이 없어요'}
+ <div style="flex:1" onclick="show('${r.id}')"><div style="display:flex;justify-content:space-between;font-size:13px;color:#5b6b69"><span>${r.date}${tm(r)}${r.manual?(r.indoor?' · 실내':' · 직접입력'):''}</span>${r.steps?`<em style="font-style:normal;color:#0f766e">${r.steps.toLocaleString()}걸음</em>`:''}</div><b style="font-size:16px">${r.dist.toFixed(2)}</b> km${r.extra?` <small>(+${+r.extra.toFixed(2)})</small>`:''} · ${hms(r.dur)} · ${spd(r)} km/h<br><small>${r.note||''}</small></div></div>`).join('')).join('')||'기록이 없어요'}
 $('#list').onchange=e=>{const i=e.target.dataset.i;e.target.checked?sel.add(i):sel.delete(i)};
 const mf=()=>{const f=$('#mform');f.style.display=f.style.display=='none'?'block':'none';$('#md').value=ymd(new Date())};
 function ma(){
