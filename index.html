@@ -27,7 +27,7 @@ nav .on{color:#0f766e;font-weight:700}
 .d u.mx{font-size:48px;color:rgba(239,68,68,.32)}
 .bars{flex:1;display:flex;align-items:flex-end;height:120px;gap:1px;border-bottom:1px solid #b9c6c4;background:linear-gradient(#e3eae9,#e3eae9) 0 0/100% 1px no-repeat,linear-gradient(#e3eae9,#e3eae9) 0 50%/100% 1px no-repeat}
 .ya{display:flex;flex-direction:column;justify-content:space-between;height:120px;width:28px;padding-right:4px;text-align:right;font-size:11px;color:#7b8c8a}
-.xl{display:flex;margin-left:28px;font-size:11px;color:#7b8c8a}.xl span{flex:1;text-align:center;white-space:nowrap}
+.xl{display:flex;margin-left:28px;font-size:11px;color:#7b8c8a}.xl span{flex:1;text-align:center;white-space:nowrap}.ya.w{width:36px}.xl.w{margin-left:36px}
 .tb{display:flex;gap:4px;margin-bottom:6px}.tb button{flex:1;margin:0}.tb .off{background:#e3eae9;color:#5b6b69}
 .mh{display:flex;justify-content:space-between;align-items:baseline;padding:8px 2px 4px}
 .ms{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eef3f2}.ms.sub{padding-left:14px;background:#f6faf9}.it svg{flex:none}
@@ -51,7 +51,7 @@ input:not([type=checkbox]){width:100%;padding:8px;margin:3px 0;border:1px solid 
   <div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px"><span id="lo">느림</span>
    <div style="flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(240,100%,45%),hsl(180,100%,45%),hsl(120,100%,40%),hsl(60,100%,45%),hsl(0,100%,45%))"></div><span id="hi">빠름</span></div>
 <div class="card" id="mform" style="display:none;margin-top:8px"><b>직접 입력 (실내 걷기 등)</b>
-  <input type="date" id="md"><input type="number" step="0.01" id="mk" placeholder="거리 (km)"><input type="number" id="mm" placeholder="시간 (분)"><input type="number" id="mc" placeholder="칼로리 (kcal, 선택)"><input id="mn" placeholder="메모 (선택)">
+  <input type="date" id="md"><input type="number" step="0.01" id="mk" placeholder="거리 (km)"><input type="number" id="mm" placeholder="시간 (분)"><input type="number" id="mc" placeholder="칼로리 (kcal, 선택)"><input type="number" id="mw" placeholder="걸음 수 (선택)"><input id="mn" placeholder="메모 (선택)">
   <label><input type="checkbox" id="mi"> 실내 걷기</label><br>
   <button onclick="ma()">저장</button><button onclick="mf()" style="background:#8a9a98">취소</button></div>
  <div style="height:6px"></div>
@@ -93,6 +93,8 @@ const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const tm=r=>{if(r.manual)return'';const d=new Date(r.ts*1000);return' '+pad(d.getHours())+':'+pad(d.getMinutes())};
 const HK=3; // 달력 하트가 나오는 하루 최소 거리(km)
+const SG=10000; // 걸음 수 그래프에서 빨강으로 표시할 하루 걸음 수(만보)
+const sumS=a=>a.reduce((x,r)=>x+(r.steps||0),0),dayS=d=>sumS(R.filter(r=>r.date==d));
 const hm=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return(h?h+'시간 ':'')+m+'분'};
 const bd=r=>r.base??r.dist,sumB=a=>a.reduce((x,r)=>x+bd(r),0);
 const spd=r=>r.dur?(bd(r)/r.dur*3600).toFixed(1):'0.0';
@@ -124,10 +126,10 @@ function draw(rs){
  if(b.length){LB=b;if(map.getSize().x)map.fitBounds(b,{padding:[20,20]})}
  info(rs)}
 function info(rs){
- const d=rs.reduce((s,r)=>s+r.dist,0),db=sumB(rs),t=rs.reduce((s,r)=>s+r.dur,0),e=rs.reduce((s,r)=>s+r.ele,0);
+ const d=rs.reduce((s,r)=>s+r.dist,0),db=sumB(rs),stN=sumS(rs),t=rs.reduce((s,r)=>s+r.dur,0),e=rs.reduce((s,r)=>s+r.ele,0);
  $('#info').innerHTML=rs.length?`<b>${rs.length>1?rs.length+'개 경로':rs[0].date}</b>
  <div class="g"><div>거리<b>${d.toFixed(2)} km</b></div><div>시간<b>${hm(t)}</b></div>
- <div>평균 속도<b>${t?(db/t*3600).toFixed(1):'0.0'} km/h</b></div><div>고도 상승<b>${Math.round(e)} m</b></div></div>`:'GPX 파일을 불러오세요'}
+ ${stN?`<div>걸음 수<b>${stN.toLocaleString()} 걸음</b></div>`:''}<div>평균 속도<b>${t?(db/t*3600).toFixed(1):'0.0'} km/h</b></div><div>고도 상승<b>${Math.round(e)} m</b></div></div>`:'GPX 파일을 불러오세요'}
 
 /* GPX 읽기 */
 function parse(txt){
@@ -153,7 +155,7 @@ $('#f').onchange=async e=>{
   if(!r||R.some(x=>x.id==r.id)||add.some(x=>x.id==r.id))continue;
   before[r.date]??=dayKm(r.date);
   const o=R.findIndex(x=>!x.manual&&x.ts==r.ts);
-  if(o>=0){r.note=R[o].note;if(R[o].kcal)r.kcal=R[o].kcal;const ex=R[o].extra||0;if(ex){r.extra=ex;r.base=r.dist;r.dist+=ex}rm(R[o].id);R.splice(o,1)} // 같은 운동을 다시 불러오면 새 계산으로 교체
+  if(o>=0){r.note=R[o].note;if(R[o].kcal)r.kcal=R[o].kcal;if(R[o].steps)r.steps=R[o].steps;const ex=R[o].extra||0;if(ex){r.extra=ex;r.base=r.dist;r.dist+=ex}rm(R[o].id);R.splice(o,1)} // 같은 운동을 다시 불러오면 새 계산으로 교체
   R.push(r);add.push(r)}
  e.target.value='';
  if(!add.length){alert('새로 추가된 기록이 없어요 (중복이거나 GPX 형식이 아니에요)');return}
@@ -180,14 +182,19 @@ function ma(){
  const d=$('#md').value,k=+$('#mk').value,m=+$('#mm').value||0;
  if(!d||!(k>0)){alert('날짜와 거리를 입력하세요');return}
  const ts=d==ymd(new Date())?Math.floor(Date.now()/1000):Math.floor(new Date(d+'T12:00:00')/1000);
- const r={id:'m'+Date.now(),ts,date:d,dist:k,dur:m*60,ele:0,note:$('#mn').value.trim(),pts:[],manual:1,indoor:$('#mi').checked?1:0,kcal:Math.round(+$('#mc').value)||0};
+ const r={id:'m'+Date.now(),ts,date:d,dist:k,dur:m*60,ele:0,note:$('#mn').value.trim(),pts:[],manual:1,indoor:$('#mi').checked?1:0,kcal:Math.round(+$('#mc').value)||0,steps:Math.round(+$('#mw').value)||0};
  const before=dayKm(d);R.push(r);save();render();up([r]);
- ['#mk','#mm','#mc','#mn'].forEach(x=>{$(x).value=''});$('#mi').checked=false;$('#mform').style.display='none';
+ ['#mk','#mm','#mc','#mw','#mn'].forEach(x=>{$(x).value=''});$('#mi').checked=false;$('#mform').style.display='none';
  if(before<G&&dayKm(d)>=G)boom()}
 let CUR=[];
 function openRs(rs,own){CUR=own?rs:[];tab('det');const hp=rs.some(r=>r.pts&&r.pts.length);$('#map').style.display=hp?'':'none';if(map&&hp)map.invalidateSize();draw(rs);act()}
-function act(){$('#dact').innerHTML=CUR.map(r=>`<div class="card"><b>${r.date}${tm(r)}</b> ${r.dist.toFixed(2)} km${r.manual?(r.indoor?' · 실내 걷기':' · 직접 입력'):''}${r.kcal?' · '+r.kcal+' kcal':''}<br>${r.extra?`<small>GPX ${bd(r).toFixed(2)} km + 직접 추가 ${+r.extra.toFixed(2)} km</small><br>`:''}<small>${r.note||'메모 없음'}</small><br>
- ${r.pts&&r.pts.length?`<button onclick="ext('${r.id}')">거리 추가</button>`:''}<button onclick="kc('${r.id}')">칼로리</button><button onclick="note('${r.id}')">메모</button><button style="background:#ef4444" onclick="del('${r.id}')">삭제</button></div>`).join('')}
+function act(){$('#dact').innerHTML=CUR.map(r=>`<div class="card"><b>${r.date}${tm(r)}</b> ${r.dist.toFixed(2)} km${r.manual?(r.indoor?' · 실내 걷기':' · 직접 입력'):''}${r.kcal?' · '+r.kcal+' kcal':''}${r.steps?' · '+r.steps.toLocaleString()+'걸음':''}<br>${r.extra?`<small>GPX ${bd(r).toFixed(2)} km + 직접 추가 ${+r.extra.toFixed(2)} km</small><br>`:''}<small>${r.note||'메모 없음'}</small><br>
+ ${r.pts&&r.pts.length?`<button onclick="ext('${r.id}')">거리 추가</button>`:''}<button onclick="sk('${r.id}')">걸음 수</button><button onclick="kc('${r.id}')">칼로리</button><button onclick="note('${r.id}')">메모</button><button style="background:#ef4444" onclick="del('${r.id}')">삭제</button></div>`).join('')}
+function sk(id){
+ const r=R.find(x=>x.id==id),v=prompt('걸음 수\n0을 입력하면 지워집니다',r.steps||'');
+ if(v==null)return;const n=Math.max(0,Math.round(+v||0));
+ if(n)r.steps=n;else delete r.steps;
+ save();render();act();info(CUR);up([r])}
 function kc(id){
  const r=R.find(x=>x.id==id),v=prompt('칼로리 (kcal)\n0을 입력하면 지워집니다',r.kcal||'');
  if(v==null)return;const n=Math.max(0,Math.round(+v||0));
@@ -217,15 +224,16 @@ const dayShow=d=>{const rs=R.filter(r=>r.date==d);if(rs.length)openRs(rs,true)};
 function ser(){
  const y=M.getFullYear(),m=M.getMonth(),mk=`${y}-${pad(m+1)}`;
  if(P=='주간'){const t=new Date(),s0=new Date(t.getFullYear(),t.getMonth(),t.getDate()-(t.getDay()+6)%7+wo*7),ds=[...Array(7)].map((_,i)=>ymd(new Date(s0.getFullYear(),s0.getMonth(),s0.getDate()+i)));
-  return{t:`${ds[0].slice(5)} ~ ${ds[6].slice(5)}`,L:[...'월화수목금토일'],V:ds.map(dayKm),day:1,f:r=>r.date>=ds[0]&&r.date<=ds[6]}}
+  return{t:`${ds[0].slice(5)} ~ ${ds[6].slice(5)}`,L:[...'월화수목금토일'],V:ds.map(dayKm),U:ds.map(dayS),day:1,f:r=>r.date>=ds[0]&&r.date<=ds[6]}}
  if(P=='월'){const n=new Date(y,m+1,0).getDate();
-  return{t:`${y}/${pad(m+1)}`,L:[...Array(n)].map((_,i)=>i+1),V:[...Array(n)].map((_,i)=>dayKm(`${mk}-${pad(i+1)}`)),day:1,f:r=>r.date.startsWith(mk)}}
- if(P=='년')return{t:y+'년',L:[...Array(12)].map((_,i)=>i+1),V:[...Array(12)].map((_,i)=>sum(R.filter(r=>r.date.startsWith(`${y}-${pad(i+1)}`)))),f:r=>r.date.startsWith(''+y)}
+  return{t:`${y}/${pad(m+1)}`,L:[...Array(n)].map((_,i)=>i+1),V:[...Array(n)].map((_,i)=>dayKm(`${mk}-${pad(i+1)}`)),U:[...Array(n)].map((_,i)=>dayS(`${mk}-${pad(i+1)}`)),day:1,f:r=>r.date.startsWith(mk)}}
+ if(P=='년')return{t:y+'년',L:[...Array(12)].map((_,i)=>i+1),V:[...Array(12)].map((_,i)=>sum(R.filter(r=>r.date.startsWith(`${y}-${pad(i+1)}`)))),U:[...Array(12)].map((_,i)=>sumS(R.filter(r=>r.date.startsWith(`${y}-${pad(i+1)}`)))),f:r=>r.date.startsWith(''+y)}
  const ys=[...new Set(R.map(r=>r.date.slice(0,4)))].sort();
- return{t:'전체',L:ys,V:ys.map(a=>sum(R.filter(r=>r.date.startsWith(a)))),f:()=>true}}
+ return{t:'전체',L:ys,V:ys.map(a=>sum(R.filter(r=>r.date.startsWith(a)))),U:ys.map(a=>sumS(R.filter(r=>r.date.startsWith(a)))),f:()=>true}}
 function stats(){
  const S0=ser(),rs=R.filter(S0.f),d=sum(rs),t=rs.reduce((s,r)=>s+r.dur,0),e=rs.reduce((s,r)=>s+r.ele,0);
  const raw=Math.max(G,...S0.V),st=raw>20?10:raw>5?5:1,top=Math.max(st,Math.ceil(raw/st)*st);
+ const rawS=Math.max(S0.day?SG:0,...S0.U),stp=rawS>30000?10000:rawS>10000?5000:rawS>2000?1000:500,topS=Math.max(stp,Math.ceil(rawS/stp)*stp),fS=v=>v>=10000?+(v/10000).toFixed(1)+'만':v>=1000?+(v/1000).toFixed(1)+'천':''+v;
  const y=M.getFullYear(),m=M.getMonth(),n=new Date(y,m+1,0).getDate(),f0=new Date(y,m,1).getDay(),dk=i=>`${y}-${pad(m+1)}-${pad(i)}`;
  const dm={};rs.forEach(r=>{dm[r.date]=(dm[r.date]||0)+r.dist});
  const days=Object.entries(dm).sort((p,q)=>q[0].localeCompare(p[0]));
@@ -243,10 +251,15 @@ function stats(){
  <div class="bars">${S0.V.map(k=>`<div style="height:${k/top*100}%;background:${!k?'#d5dedc':!S0.day?'#0f766e':k>=G?'#ef4444':'#2563eb'}"></div>`).join('')}</div></div>
  <div class="xl">${S0.L.map((l,i)=>`<span>${S0.L.length>12&&i&&(i+1)%5?'':l}</span>`).join('')}</div>
  <small>일 목표 <input type="number" step="0.5" value="${G}" style="width:70px;display:inline" onchange="G=+this.value||3;LS.walk_goal=G;stats()"> km ${S0.day?'(빨강: 달성, 파랑: 미달)':''}</small></div>
+ <div class="card"><b>걸음 수</b> <small>${S0.day?'(빨강: '+fS(SG)+' 이상)':''}</small>
+ <div style="display:flex;margin-top:8px"><div class="ya w"><span>${fS(topS)}</span><span>${fS(topS/2)}</span><span>0</span></div>
+ <div class="bars">${S0.U.map(k=>`<div style="height:${k/topS*100}%;background:${!k?'#d5dedc':!S0.day?'#0f766e':k>=SG?'#ef4444':'#2563eb'}"></div>`).join('')}</div></div>
+ <div class="xl w">${S0.L.map((l,i)=>`<span>${S0.L.length>12&&i&&(i+1)%5?'':l}</span>`).join('')}</div></div>
  <div class="mh"><b>${P} 통계</b></div>
  <div class="g"><div>총 거리<b>${d.toFixed(2)} km</b></div><div>총 시간<b>${hms(t)}</b></div><div>걷기 횟수<b>${rs.length}회</b></div>
  <div>누적 상승<b>${Math.round(e)} m</b></div><div>평균 속도<b>${t?(sumB(rs)/t*3600).toFixed(1):'0.0'} km/h</b></div>
  <div>총 칼로리<b>${Math.round(rs.reduce((x,r)=>x+(r.kcal||0),0))} kcal</b></div>
+ <div>총 걸음 수<b>${sumS(rs).toLocaleString()} 걸음</b></div>
  <div>연속 기록<b>${cur}일</b><small>(최장 ${best}일)</small></div></div>
  <div class="mh"><b>최고 기록</b></div>
  <div class="g"><div>최장 거리<b>${L1?L1.d.toFixed(2):0} km</b><small>(${L1?hm(L1.t):'-'})</small></div><div>최고 평균 속도<b>${F1?spd(F1):'0.0'} km/h</b></div></div>
