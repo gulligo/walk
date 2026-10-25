@@ -30,7 +30,7 @@ nav .on{color:#0f766e;font-weight:700}
 .xl{display:flex;margin-left:28px;font-size:11px;color:#7b8c8a}.xl span{flex:1;text-align:center;white-space:nowrap}
 .tb{display:flex;gap:4px;margin-bottom:6px}.tb button{flex:1;margin:0}.tb .off{background:#e3eae9;color:#5b6b69}
 .mh{display:flex;justify-content:space-between;align-items:baseline;padding:8px 2px 4px}
-.ms{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eef3f2}.it svg{flex:none}
+.ms{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eef3f2}.ms.sub{padding-left:14px;background:#f6faf9}.it svg{flex:none}
 .bars div{flex:1;border-radius:2px 2px 0 0;min-height:2px}
 input:not([type=checkbox]){width:100%;padding:8px;margin:3px 0;border:1px solid #c5d0ce;border-radius:8px;font-size:14px}
 #fx{position:fixed;inset:0;z-index:99;pointer-events:none;display:none}
@@ -51,7 +51,7 @@ input:not([type=checkbox]){width:100%;padding:8px;margin:3px 0;border:1px solid 
   <div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px"><span id="lo">느림</span>
    <div style="flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(240,100%,45%),hsl(180,100%,45%),hsl(120,100%,40%),hsl(60,100%,45%),hsl(0,100%,45%))"></div><span id="hi">빠름</span></div>
 <div class="card" id="mform" style="display:none;margin-top:8px"><b>직접 입력 (실내 걷기 등)</b>
-  <input type="date" id="md"><input type="number" step="0.01" id="mk" placeholder="거리 (km)"><input type="number" id="mm" placeholder="시간 (분)"><input id="mn" placeholder="메모 (선택)">
+  <input type="date" id="md"><input type="number" step="0.01" id="mk" placeholder="거리 (km)"><input type="number" id="mm" placeholder="시간 (분)"><input type="number" id="mc" placeholder="칼로리 (kcal, 선택)"><input id="mn" placeholder="메모 (선택)">
   <label><input type="checkbox" id="mi"> 실내 걷기</label><br>
   <button onclick="ma()">저장</button><button onclick="mf()" style="background:#8a9a98">취소</button></div>
  <div style="height:6px"></div>
@@ -153,7 +153,7 @@ $('#f').onchange=async e=>{
   if(!r||R.some(x=>x.id==r.id)||add.some(x=>x.id==r.id))continue;
   before[r.date]??=dayKm(r.date);
   const o=R.findIndex(x=>!x.manual&&x.ts==r.ts);
-  if(o>=0){r.note=R[o].note;const ex=R[o].extra||0;if(ex){r.extra=ex;r.base=r.dist;r.dist+=ex}rm(R[o].id);R.splice(o,1)} // 같은 운동을 다시 불러오면 새 계산으로 교체
+  if(o>=0){r.note=R[o].note;if(R[o].kcal)r.kcal=R[o].kcal;const ex=R[o].extra||0;if(ex){r.extra=ex;r.base=r.dist;r.dist+=ex}rm(R[o].id);R.splice(o,1)} // 같은 운동을 다시 불러오면 새 계산으로 교체
   R.push(r);add.push(r)}
  e.target.value='';
  if(!add.length){alert('새로 추가된 기록이 없어요 (중복이거나 GPX 형식이 아니에요)');return}
@@ -162,7 +162,7 @@ $('#f').onchange=async e=>{
 
 /* 기록 목록 */
 function thumb(r){
- if(!r.pts||!r.pts.length)return`<svg width="56" height="56" style="background:#eef3f2;border-radius:8px"><text x="28" y="38" text-anchor="middle" font-size="26">${r.indoor?'🏠':'✍️'}</text></svg>`;
+ if(!r.pts||!r.pts.length)return r.indoor?`<svg width="56" height="56" style="background:#eef3f2;border-radius:8px"><text x="28" y="38" text-anchor="middle" font-size="26">🏠</text></svg>`:`<img src="shoe.png" width="56" height="56" alt="" style="object-fit:contain;padding:6px;background:#eef3f2;border-radius:8px">`;
  const p=r.pts,la=p.map(x=>x[0]),lo=p.map(x=>x[1]),a=Math.min(...la),b=Math.max(...la),c=Math.min(...lo),d=Math.max(...lo),k=Math.cos(a*Math.PI/180),z=Math.max(b-a,(d-c)*k)||1e-4,q=Math.ceil(p.length/60);
  const runs=[];let cur=null;
  p.forEach((x,i)=>{if(x[4]||!cur){cur=[];runs.push(cur)}
@@ -180,14 +180,19 @@ function ma(){
  const d=$('#md').value,k=+$('#mk').value,m=+$('#mm').value||0;
  if(!d||!(k>0)){alert('날짜와 거리를 입력하세요');return}
  const ts=d==ymd(new Date())?Math.floor(Date.now()/1000):Math.floor(new Date(d+'T12:00:00')/1000);
- const r={id:'m'+Date.now(),ts,date:d,dist:k,dur:m*60,ele:0,note:$('#mn').value.trim(),pts:[],manual:1,indoor:$('#mi').checked?1:0};
+ const r={id:'m'+Date.now(),ts,date:d,dist:k,dur:m*60,ele:0,note:$('#mn').value.trim(),pts:[],manual:1,indoor:$('#mi').checked?1:0,kcal:Math.round(+$('#mc').value)||0};
  const before=dayKm(d);R.push(r);save();render();up([r]);
- ['#mk','#mm','#mn'].forEach(x=>{$(x).value=''});$('#mi').checked=false;$('#mform').style.display='none';
+ ['#mk','#mm','#mc','#mn'].forEach(x=>{$(x).value=''});$('#mi').checked=false;$('#mform').style.display='none';
  if(before<G&&dayKm(d)>=G)boom()}
 let CUR=[];
 function openRs(rs,own){CUR=own?rs:[];tab('det');const hp=rs.some(r=>r.pts&&r.pts.length);$('#map').style.display=hp?'':'none';if(map&&hp)map.invalidateSize();draw(rs);act()}
-function act(){$('#dact').innerHTML=CUR.map(r=>`<div class="card"><b>${r.date}${tm(r)}</b> ${r.dist.toFixed(2)} km${r.manual?(r.indoor?' · 실내 걷기':' · 직접 입력'):''}<br>${r.extra?`<small>GPX ${bd(r).toFixed(2)} km + 직접 추가 ${+r.extra.toFixed(2)} km</small><br>`:''}<small>${r.note||'메모 없음'}</small><br>
- ${r.pts&&r.pts.length?`<button onclick="ext('${r.id}')">거리 추가</button>`:''}<button onclick="note('${r.id}')">메모</button><button style="background:#ef4444" onclick="del('${r.id}')">삭제</button></div>`).join('')}
+function act(){$('#dact').innerHTML=CUR.map(r=>`<div class="card"><b>${r.date}${tm(r)}</b> ${r.dist.toFixed(2)} km${r.manual?(r.indoor?' · 실내 걷기':' · 직접 입력'):''}${r.kcal?' · '+r.kcal+' kcal':''}<br>${r.extra?`<small>GPX ${bd(r).toFixed(2)} km + 직접 추가 ${+r.extra.toFixed(2)} km</small><br>`:''}<small>${r.note||'메모 없음'}</small><br>
+ ${r.pts&&r.pts.length?`<button onclick="ext('${r.id}')">거리 추가</button>`:''}<button onclick="kc('${r.id}')">칼로리</button><button onclick="note('${r.id}')">메모</button><button style="background:#ef4444" onclick="del('${r.id}')">삭제</button></div>`).join('')}
+function kc(id){
+ const r=R.find(x=>x.id==id),v=prompt('칼로리 (kcal)\n0을 입력하면 지워집니다',r.kcal||'');
+ if(v==null)return;const n=Math.max(0,Math.round(+v||0));
+ if(n)r.kcal=n;else delete r.kcal;
+ save();render();act();up([r])}
 function ext(id){
  const r=R.find(x=>x.id==id),b=bd(r),v=prompt('기록 없이 더 걸은 거리(km)\n0을 입력하면 추가 거리가 없어집니다',r.extra||'');
  if(v==null)return;
@@ -202,7 +207,8 @@ function del(id){if(!confirm('이 기록을 삭제할까요?'))return;R=R.filter
  if(CUR.length){draw(CUR);act()}else history.back()}
 
 /* 통계: 기간 탭 그래프, 통계 카드, 이정표, 달력 */
-let P='월',wo=0;
+let P='월',wo=0,MX=0;
+const mst=x=>{MX=MX==x?0:x;stats()};
 const sum=a=>a.reduce((s,r)=>s+r.dist,0),hms=s=>`${pad(Math.floor(s/3600))}:${pad(Math.floor(s%3600/60))}:${pad(Math.floor(s%60))}`;
 const mv=d=>{M=new Date(M.getFullYear(),M.getMonth()+d,1);stats()};
 const nv=d=>{if(P=='주간'){wo+=d;stats()}else mv(P=='년'?d*12:d)};
@@ -221,6 +227,8 @@ function stats(){
  const S0=ser(),rs=R.filter(S0.f),d=sum(rs),t=rs.reduce((s,r)=>s+r.dur,0),e=rs.reduce((s,r)=>s+r.ele,0);
  const raw=Math.max(G,...S0.V),st=raw>20?10:raw>5?5:1,top=Math.max(st,Math.ceil(raw/st)*st);
  const y=M.getFullYear(),m=M.getMonth(),n=new Date(y,m+1,0).getDate(),f0=new Date(y,m,1).getDay(),dk=i=>`${y}-${pad(m+1)}-${pad(i)}`;
+ const dm={};rs.forEach(r=>{dm[r.date]=(dm[r.date]||0)+r.dist});
+ const days=Object.entries(dm).sort((p,q)=>q[0].localeCompare(p[0]));
  const cm=[...Array(n)].map((_,i)=>dayKm(dk(i+1))),mxd=Math.max(...cm);
  const S=new Set(R.map(r=>r.date));let cur=0,dd=new Date();
  if(!S.has(ymd(dd)))dd.setDate(dd.getDate()-1);
@@ -238,11 +246,12 @@ function stats(){
  <div class="mh"><b>${P} 통계</b></div>
  <div class="g"><div>총 거리<b>${d.toFixed(2)} km</b></div><div>총 시간<b>${hms(t)}</b></div><div>걷기 횟수<b>${rs.length}회</b></div>
  <div>누적 상승<b>${Math.round(e)} m</b></div><div>평균 속도<b>${t?(sumB(rs)/t*3600).toFixed(1):'0.0'} km/h</b></div>
+ <div>총 칼로리<b>${Math.round(rs.reduce((x,r)=>x+(r.kcal||0),0))} kcal</b></div>
  <div>연속 기록<b>${cur}일</b><small>(최장 ${best}일)</small></div></div>
  <div class="mh"><b>최고 기록</b></div>
  <div class="g"><div>최장 거리<b>${L1?L1.d.toFixed(2):0} km</b><small>(${L1?hm(L1.t):'-'})</small></div><div>최고 평균 속도<b>${F1?spd(F1):'0.0'} km/h</b></div></div>
  <div class="mh"><b>이정표</b></div>
- <div class="card">${[3,5,10].map(x=>`<div class="ms"><span>${x}KM 이상 걸은 횟수</span><b>${rs.filter(r=>r.dist>=x).length}</b></div>`).join('')}</div>
+ <div class="card">${[3,5,10].map(x=>{const a=days.filter(o=>o[1]>=x);return`<div class="ms" onclick="mst(${x})"><span>${x}KM 이상 걸은 횟수 ${MX==x?'▲':'▼'}</span><b>${a.length}회</b></div>`+(MX==x?a.map(o=>`<div class="ms sub" onclick="dayShow('${o[0]}')"><span>${o[0]}</span><b>${o[1].toFixed(2)} km</b></div>`).join('')||'<div class="ms sub"><span>해당하는 날이 없어요</span></div>':'')}).join('')}</div>
  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><button onclick="mv(-1)">◀</button><b>${y}년 ${m+1}월</b><button onclick="mv(1)">▶</button></div>
  <div class="cal">${[...'일월화수목금토'].map(x=>`<i>${x}</i>`).join('')}${'<div></div>'.repeat(f0)}${[...Array(n)].map((_,i)=>`<div class="d" onclick="dayShow('${dk(i+1)}')">${cm[i]>=HK?`<u class="${cm[i]==mxd?'mx':''}">♥</u>`:''}${i+1}</div>`).join('')}</div></div>`}
 
